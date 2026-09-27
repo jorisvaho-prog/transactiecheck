@@ -74,6 +74,47 @@ def print_rapport(waargenomen, afwijkingen, mad):
         print("Vlag: OK — verdeling volgt de wet van Benford.")
 
 
+def genereer_html_rapport(waargenomen, afwijkingen, mad, pad="rapport.html"):
+    """Schrijft een klein visueel rapport weg als HTML-bestand."""
+    vlag = "BEKIJK MANUEEL" if mad > 0.02 else "OK"
+    kleur = "#9c4a3c" if mad > 0.02 else "#3e6e68"
+
+    balken = ""
+    max_pct = max(max(waargenomen.values()), max(BENFORD_EXPECTED.values())) * 100
+    for d in range(1, 10):
+        verwacht_pct = BENFORD_EXPECTED[d] * 100
+        waarg_pct = waargenomen[d] * 100
+        balken += f"""
+        <div class="rij">
+          <span class="cijfer">{d}</span>
+          <div class="balk-verwacht" style="width:{verwacht_pct/max_pct*100:.1f}%"></div>
+          <div class="balk-waarg" style="width:{waarg_pct/max_pct*100:.1f}%"></div>
+        </div>"""
+
+    html = f"""<!DOCTYPE html>
+<html lang="nl"><head><meta charset="UTF-8">
+<title>TransactieCheck rapport</title>
+<style>
+  body {{ font-family: sans-serif; max-width: 480px; margin: 2rem auto; }}
+  .rij {{ display:flex; align-items:center; gap:6px; margin-bottom:6px; }}
+  .cijfer {{ width:1rem; }}
+  .balk-verwacht {{ height:8px; background:#ccc; }}
+  .balk-waarg {{ height:8px; background:{kleur}; }}
+  .vlag {{ font-weight:bold; color:{kleur}; }}
+</style></head>
+<body>
+  <h2>TransactieCheck rapport</h2>
+  <p>Grijs = verwacht (Benford), gekleurd = waargenomen.</p>
+  {balken}
+  <p>Mean Absolute Deviation: {mad*100:.2f}%</p>
+  <p class="vlag">Vlag: {vlag}</p>
+</body></html>"""
+
+    with open(pad, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"HTML-rapport geschreven naar {pad}")
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Gebruik: python3 transactiecheck.py <bestand.csv>")
@@ -82,3 +123,4 @@ if __name__ == "__main__":
     bedragen = load_amounts(sys.argv[1])
     waargenomen, afwijkingen, mad = analyseer(bedragen)
     print_rapport(waargenomen, afwijkingen, mad)
+    genereer_html_rapport(waargenomen, afwijkingen, mad)
